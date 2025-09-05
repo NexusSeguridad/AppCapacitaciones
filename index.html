@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Capacitaciones | Ley 19.587</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #16a34a; /* Verde Seguridad */
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #15803d;
+            box-shadow: 0 4px 8px rgba(22, 163, 74, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: #f0f4f8;
+            color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+
+        .input-field {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            transform: scale(0.95);
+            transition: transform 0.3s ease-out;
+        }
+
+        .modal-content.open {
+            transform: scale(1);
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+        
+        thead th {
+            text-align: left;
+        }
+
+        td {
+            padding: 12px 16px;
+        }
+
+        .completed-row {
+            background-color: #d1fae5;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar-day {
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Encabezado -->
+    <header class="text-center mb-10">
+        <h1 class="text-4xl font-bold text-gray-800">Sistema de Gestión de Capacitaciones</h1>
+        <p class="text-gray-600 mt-2">Cumplimiento con la Ley Nacional de Higiene y Seguridad Laboral 19.587</p>
+    </header>
+
+    <!-- Contenedor principal de la app -->
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Panel de control (izquierda) -->
+        <div class="lg:col-span-2">
+            <!-- Sección de resumen y dashboard -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Tarjeta de Resumen 1 -->
+                <div class="card p-6 text-center">
+                    <h2 class="text-3xl font-bold text-gray-800" id="totalCapacitaciones">0</h2>
+                    <p class="text-gray-500">Capacitaciones Agendadas</p>
+                </div>
+                <!-- Tarjeta de Resumen 2 -->
+                <div class="card p-6 text-center">
+                    <h2 class="text-3xl font-bold text-green-600" id="completadas">0</h2>
+                    <p class="text-gray-500">Capacitaciones Completadas</p>
+                </div>
+                <!-- Tarjeta de Resumen 3 -->
+                <div class="card p-6 text-center">
+                    <h2 class="text-3xl font-bold text-red-500" id="pendientes">0</h2>
+                    <p class="text-gray-500">Capacitaciones Pendientes</p>
+                </div>
+            </div>
+
+            <!-- Gráfico de Cumplimiento por Sector -->
+            <div class="card p-6 mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">Cumplimiento por Sector (%)</h3>
+                <canvas id="complianceChart"></canvas>
+            </div>
+
+            <!-- Cronograma y Agenda -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-700">Cronograma de Capacitaciones</h3>
+                    <div class="flex items-center space-x-2">
+                        <button id="prevMonth" class="btn btn-secondary px-3 py-1 text-sm">&lt;</button>
+                        <h4 id="currentMonth" class="text-lg font-medium text-gray-700"></h4>
+                        <button id="nextMonth" class="btn btn-secondary px-3 py-1 text-sm">&gt;</button>
+                    </div>
+                </div>
+                <div id="calendar-container" class="calendar-grid text-sm text-center">
+                    <div class="font-medium text-gray-500 p-2">Lun</div>
+                    <div class="font-medium text-gray-500 p-2">Mar</div>
+                    <div class="font-medium text-gray-500 p-2">Mié</div>
+                    <div class="font-medium text-gray-500 p-2">Jue</div>
+                    <div class="font-medium text-gray-500 p-2">Vie</div>
+                    <div class="font-medium text-gray-500 p-2">Sáb</div>
+                    <div class="font-medium text-gray-500 p-2">Dom</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra lateral (derecha) -->
+        <div class="col-span-1 space-y-6">
+            <!-- Formulario para Agendar Capacitación -->
+            <div class="card p-6">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Agendar Nueva Capacitación</h3>
+                <form id="add-form" class="space-y-4">
+                    <div>
+                        <label for="topic" class="block text-gray-600 mb-1 text-sm">Tema</label>
+                        <input type="text" id="topic" name="topic" placeholder="Ej: Primeros Auxilios" class="w-full input-field" required>
+                    </div>
+                    <div>
+                        <label for="sector" class="block text-gray-600 mb-1 text-sm">Sector</label>
+                        <select id="sector" name="sector" class="w-full input-field" required>
+                            <option value="">Seleccione un sector</option>
+                            <option value="Administración">Administración</option>
+                            <option value="Producción">Producción</option>
+                            <option value="Logística">Logística</option>
+                            <option value="IT">IT</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="date" class="block text-gray-600 mb-1 text-sm">Fecha</label>
+                        <input type="date" id="date" name="date" class="w-full input-field" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">Agendar Capacitación</button>
+                </form>
+            </div>
+
+            <!-- Tabla de Registros -->
+            <div class="card p-6">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Registros y Tareas</h3>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-100 rounded-lg">
+                            <th class="p-2">Tema</th>
+                            <th class="p-2">Sector</th>
+                            <th class="p-2">Fecha</th>
+                            <th class="p-2">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <!-- Las filas se insertarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Sección de Exportar -->
+            <div class="card p-6">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Exportar Registros</h3>
+                <div class="flex flex-col space-y-4">
+                    <button id="exportExcelBtn" class="btn btn-secondary">Exportar a Excel (.xlsx)</button>
+                    <button id="exportPdfBtn" class="btn btn-secondary">Exportar a PDF</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para detalles de capacitación -->
+    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-overlay">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm modal-content">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Detalles de Capacitación</h4>
+            <p id="modalTopic" class="text-gray-700 text-lg font-bold"></p>
+            <p id="modalSector" class="text-gray-500 text-sm"></p>
+            <p id="modalDate" class="text-gray-500 text-sm mb-4"></p>
+            <div class="flex justify-end space-x-2">
+                <button id="closeModalBtn" class="btn btn-secondary">Cerrar</button>
+                <button id="completeBtn" class="btn btn-primary">Marcar como Completada</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript para la lógica de la app -->
+    <script>
+        // Simulando una base de datos local
+        let trainings = JSON.parse(localStorage.getItem('trainings')) || [];
+
+        // Referencias del DOM
+        const form = document.getElementById('add-form');
+        const recordsTableBody = document.getElementById('recordsTableBody');
+        const complianceChartCanvas = document.getElementById('complianceChart').getContext('2d');
+        const totalCapacitaciones = document.getElementById('totalCapacitaciones');
+        const completadasCounter = document.getElementById('completadas');
+        const pendientesCounter = document.getElementById('pendientes');
+        const calendarContainer = document.getElementById('calendar-container');
+        const currentMonthDisplay = document.getElementById('currentMonth');
+        const prevMonthBtn = document.getElementById('prevMonth');
+        const nextMonthBtn = document.getElementById('nextMonth');
+        const modal = document.getElementById('modal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalTopic = document.getElementById('modalTopic');
+        const modalSector = document.getElementById('modalSector');
+        const modalDate = document.getElementById('modalDate');
+        const completeBtn = document.getElementById('completeBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+        let complianceChart;
+        let selectedTrainingId = null;
+
+        let currentDate = new Date();
+
+        // ---------------------------------------------------------------------
+        // Funciones de utilidad
+        // ---------------------------------------------------------------------
+
+        // Formato de fecha
+        const formatDate = (dateStr) => {
+            const date = new Date(dateStr + 'T00:00:00'); // Asegura que se interpreta como UTC
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('es-ES', options);
+        };
+
+        // Guardar datos en el almacenamiento local
+        const saveData = () => {
+            localStorage.setItem('trainings', JSON.stringify(trainings));
+        };
+
+        // ---------------------------------------------------------------------
+        // Lógica de Renderizado
+        // ---------------------------------------------------------------------
+
+        // Renderiza la tabla de registros
+        const renderRecordsTable = () => {
+            recordsTableBody.innerHTML = '';
+            // Ordenar por fecha, con las más próximas primero
+            trainings.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Priorizar las capacitaciones próximas y alertar vencimientos
+            const today = new Date().setHours(0, 0, 0, 0);
+
+            trainings.forEach(training => {
+                const row = document.createElement('tr');
+                const rowClass = training.status === 'Completada' ? 'completed-row' : '';
+                row.className = `cursor-pointer transition-all duration-200 hover:bg-gray-100 ${rowClass}`;
+                row.dataset.id = training.id;
+                
+                const trainingDate = new Date(training.date + 'T00:00:00');
+                const timeDiff = trainingDate.getTime() - today;
+                const dayDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+                let statusText = training.status;
+                let statusColor = 'text-gray-500';
+                if (training.status === 'Pendiente') {
+                    if (dayDiff <= 7 && dayDiff >= 0) {
+                        statusText = `Próxima (${dayDiff} días)`;
+                        statusColor = 'text-yellow-600 font-semibold';
+                    } else if (dayDiff < 0) {
+                        statusText = `Vencida (${Math.abs(dayDiff)} días)`;
+                        statusColor = 'text-red-600 font-semibold';
+                    }
+                } else {
+                    statusColor = 'text-green-600 font-semibold';
+                }
+
+                row.innerHTML = `
+                    <td class="p-2 text-gray-600">${training.topic}</td>
+                    <td class="p-2 text-gray-600">${training.sector}</td>
+                    <td class="p-2 text-gray-600">${formatDate(training.date)}</td>
+                    <td class="p-2 ${statusColor}">${statusText}</td>
+                `;
+                recordsTableBody.appendChild(row);
+            });
+        };
+
+        // Actualiza los contadores de resumen
+        const updateSummaryCounters = () => {
+            const completedCount = trainings.filter(t => t.status === 'Completada').length;
+            const pendingCount = trainings.filter(t => t.status === 'Pendiente').length;
+            
+            totalCapacitaciones.textContent = trainings.length;
+            completadasCounter.textContent = completedCount;
+            pendientesCounter.textContent = pendingCount;
+        };
+
+        // Renderiza el gráfico de cumplimiento
+        const renderComplianceChart = () => {
+            const sectors = ['Administración', 'Producción', 'Logística', 'IT'];
+            const data = sectors.map(sector => {
+                const sectorTrainings = trainings.filter(t => t.sector === sector);
+                const completed = sectorTrainings.filter(t => t.status === 'Completada').length;
+                return sectorTrainings.length > 0 ? (completed / sectorTrainings.length) * 100 : 0;
+            });
+
+            if (complianceChart) {
+                complianceChart.destroy(); // Destruye el gráfico existente para renderizar uno nuevo
+            }
+
+            complianceChart = new Chart(complianceChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: sectors,
+                    datasets: [{
+                        label: 'Porcentaje de Cumplimiento (%)',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(22, 163, 74, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(5, 150, 105, 0.7)',
+                            'rgba(20, 150, 10, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(22, 163, 74)',
+                            'rgb(16, 185, 129)',
+                            'rgb(5, 150, 105)',
+                            'rgb(20, 150, 10)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        // Renderiza el calendario mensual
+        const renderCalendar = (date) => {
+            calendarContainer.querySelectorAll('.calendar-day, .calendar-day-header').forEach(el => el.remove());
+
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            currentMonthDisplay.textContent = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+            // Headers para dispositivos móviles
+            const dayNames = ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'];
+            dayNames.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'font-medium text-gray-500 p-2 text-center block sm:hidden';
+                header.textContent = day;
+                calendarContainer.appendChild(header);
+            });
+
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            const startingDay = firstDayOfMonth.getDay() === 0 ? 6 : firstDayOfMonth.getDay() - 1; // Ajusta para que la semana empiece en Lunes
+
+            // Rellenar días vacíos
+            for (let i = 0; i < startingDay; i++) {
+                const emptyDay = document.createElement('div');
+                calendarContainer.appendChild(emptyDay);
+            }
+
+            // Rellenar días del mes
+            for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
+                const day = document.createElement('div');
+                day.className = `calendar-day p-2 text-center relative border border-gray-200 rounded-lg m-1`;
+                day.innerHTML = `<span class="font-bold text-gray-800">${i}</span>`;
+                
+                const trainingsOnDay = trainings.filter(t => {
+                    const trainingDate = new Date(t.date + 'T00:00:00');
+                    return trainingDate.getFullYear() === year && trainingDate.getMonth() === month && trainingDate.getDate() === i;
+                });
+
+                if (trainingsOnDay.length > 0) {
+                    const list = document.createElement('ul');
+                    list.className = 'mt-1 space-y-1';
+                    trainingsOnDay.forEach(t => {
+                        const trainingItem = document.createElement('li');
+                        const statusClass = t.status === 'Completada' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+                        trainingItem.className = `text-xs font-medium rounded-full py-1 px-2 overflow-hidden whitespace-nowrap overflow-ellipsis ${statusClass}`;
+                        trainingItem.textContent = t.topic;
+                        trainingItem.dataset.id = t.id;
+                        trainingItem.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            showModal(t.id);
+                        });
+                        list.appendChild(trainingItem);
+                    });
+                    day.appendChild(list);
+                }
+                calendarContainer.appendChild(day);
+            }
+        };
+
+        // Función de inicialización
+        const init = () => {
+            renderRecordsTable();
+            updateSummaryCounters();
+            renderComplianceChart();
+            renderCalendar(currentDate);
+        };
+
+        // ---------------------------------------------------------------------
+        // Manejadores de Eventos
+        // ---------------------------------------------------------------------
+
+        // Manejar el envío del formulario
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newTraining = {
+                id: Date.now(),
+                topic: form.topic.value,
+                sector: form.sector.value,
+                date: form.date.value,
+                status: 'Pendiente'
+            };
+            trainings.push(newTraining);
+            saveData();
+            form.reset();
+            init(); // Vuelve a renderizar todo
+        });
+
+        // Manejar clics en la tabla para abrir el modal
+        recordsTableBody.addEventListener('click', (e) => {
+            const row = e.target.closest('tr');
+            if (row) {
+                const trainingId = parseInt(row.dataset.id);
+                showModal(trainingId);
+            }
+        });
+        
+        // Manejar el cambio de mes en el calendario
+        prevMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar(currentDate);
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar(currentDate);
+        });
+
+        // Manejar el modal
+        const showModal = (id) => {
+            selectedTrainingId = id;
+            const training = trainings.find(t => t.id === id);
+            if (training) {
+                modalTopic.textContent = training.topic;
+                modalSector.textContent = `Sector: ${training.sector}`;
+                modalDate.textContent = `Fecha: ${formatDate(training.date)}`;
+                
+                if (training.status === 'Completada') {
+                    completeBtn.classList.add('hidden');
+                } else {
+                    completeBtn.classList.remove('hidden');
+                }
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        };
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+
+        // Marcar capacitación como completada
+        completeBtn.addEventListener('click', () => {
+            const training = trainings.find(t => t.id === selectedTrainingId);
+            if (training) {
+                training.status = 'Completada';
+                saveData();
+                modal.classList.add('hidden');
+                init(); // Vuelve a renderizar
+            }
+        });
+
+        // Manejar la exportación a Excel (simulado)
+        exportExcelBtn.addEventListener('click', () => {
+            const data = trainings.map(t => ({
+                Tema: t.topic,
+                Sector: t.sector,
+                Fecha: t.date,
+                Estado: t.status
+            }));
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'registros_capacitaciones.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            alert('Exportación a Excel simulada. Se ha descargado un archivo JSON.');
+        });
+
+        // Manejar la exportación a PDF (simulado)
+        exportPdfBtn.addEventListener('click', () => {
+            const message = 'Generando informe PDF...\n\nEste es un ejemplo que simula la funcionalidad de exportación. Los datos de la tabla serian exportados en un formato de reporte.';
+            alert('Exportación a PDF simulada.\n\n' + message);
+        });
+
+        // Inicializar la aplicación al cargar la página
+        window.onload = init;
+
+    </script>
+</body>
+</html>
