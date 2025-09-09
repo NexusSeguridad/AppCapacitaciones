@@ -466,6 +466,18 @@
                 status: 'Pendiente'
             };
             trainings.push(newTraining);
+            // Enviar al webhook de Make
+fetch("https://hook.make.com/tu-id-unico", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        tema: newTraining.topic,
+        sector: newTraining.sector,
+        fecha: newTraining.date,
+        estado: newTraining.status
+    })
+});
+
             saveData();
             form.reset();
             init(); // Vuelve a renderizar todo
@@ -563,4 +575,5 @@
 
     </script>
 </body>
+
 </html>
