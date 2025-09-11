@@ -515,6 +515,21 @@ fetch("https://hook.us2.make.com/p1iwmshmzxw84q7p23clo1wtb4zu8n7n", {
                 modalDate.textContent = `Fecha: ${formatDate(training.date)}`;
                 
                 if (training.status === 'Completada') {
+                    training.status = 'Completada';
+
+// Enviar actualización al webhook
+fetch("https://hook.us2.make.com/p1iwmshmzxw84q7p23clo1wtb4zu8n7n", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    topic: training.topic,
+    sector: training.sector,
+    date: training.date,
+    status: training.status
+  })
+});
                     completeBtn.classList.add('hidden');
                 } else {
                     completeBtn.classList.remove('hidden');
@@ -579,6 +594,7 @@ fetch("https://hook.us2.make.com/p1iwmshmzxw84q7p23clo1wtb4zu8n7n", {
 </body>
 
 </html>
+
 
 
 
